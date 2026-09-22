@@ -1,0 +1,13 @@
+track,split,clips,source_videos,day,evening,night,clear,shadow,blur,glare,rain
+all_kept,train,984,14,582,47,355,787,51,71,30,45
+all_kept,val,221,4,117,40,64,201,6,0,14,0
+all_kept,test,220,5,104,29,87,146,3,27,15,29
+track_a,train,360,14,244,29,87,232,43,29,28,28
+track_a,val,98,4,40,29,29,78,6,0,14,0
+track_a,test,142,5,55,29,58,68,3,27,15,29
+track_b,train,0,0,0,0,0,0,0,0,0,0
+track_b,val,117,2,117,0,0,111,6,0,0,0
+track_b,test,77,1,77,0,0,77,0,0,0,0
+track_c,train,0,0,0,0,0,0,0,0,0,0
+track_c,val,0,0,0,0,0,0,0,0,0,0
+track_c,test,116,3,0,29,87,69,3,0,15,29

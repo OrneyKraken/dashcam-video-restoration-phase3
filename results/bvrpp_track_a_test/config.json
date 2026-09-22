@@ -1,0 +1,17 @@
+{
+  "run_name": "bvrpp_track_a_test",
+  "model": "basicvsrpp_wrapper:restore",
+  "tracks": [
+    "A"
+  ],
+  "splits": [
+    "test"
+  ],
+  "max_frames": 80,
+  "limit_clips": null,
+  "tof": true,
+  "lpips": false,
+  "brisque_niqe": false,
+  "finished": "2026-09-20T19:36:47",
+  "elapsed_sec": 23622.2
+}

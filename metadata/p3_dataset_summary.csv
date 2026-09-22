@@ -1,0 +1,14 @@
+key,value
+clean_clips_ok,755
+clean_clips_failed,0
+clean_frames_total,226236
+clips_train,360
+clips_val,175
+clips_test,220
+clips_day,465
+clips_evening,87
+clips_night,203
+fps,15
+width,1280
+height,720
+degradation,runtime via p3_degrade.py (nothing pre-noised on disk)

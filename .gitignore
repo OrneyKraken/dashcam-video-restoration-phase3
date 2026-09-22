@@ -1,0 +1,23 @@
+# Dataset frames - 262 GB, never commit. See README for how to obtain.
+dataset/
+*.png
+*.jpg
+*.mp4
+
+# Third-party model code is NOT vendored here - each has its own licence
+# (RVRT is CC-BY-NC, mmagic Apache-2.0, FastDVDnet its own terms). The README
+# explains how to clone them and which patches this project applied.
+external/
+
+# Training/eval logs and scratch output
+logs/
+runs/*/            # checkpoints are committed under checkpoints/ instead
+!checkpoints/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+.venv/

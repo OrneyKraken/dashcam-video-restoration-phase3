@@ -1,0 +1,17 @@
+{
+  "run_name": "rvrt_track_a_test",
+  "model": "rvrt_wrapper:restore",
+  "tracks": [
+    "A"
+  ],
+  "splits": [
+    "test"
+  ],
+  "max_frames": 80,
+  "limit_clips": null,
+  "tof": true,
+  "lpips": false,
+  "brisque_niqe": false,
+  "finished": "2026-09-20T12:43:55",
+  "elapsed_sec": 23547.1
+}

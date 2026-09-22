@@ -1,0 +1,17 @@
+{
+  "run_name": "fastdvdnet_track_a_test",
+  "model": "fastdvdnet_wrapper:restore",
+  "tracks": [
+    "A"
+  ],
+  "splits": [
+    "test"
+  ],
+  "max_frames": 80,
+  "limit_clips": null,
+  "tof": true,
+  "lpips": false,
+  "brisque_niqe": false,
+  "finished": "2026-09-20T23:48:29",
+  "elapsed_sec": 15078.8
+}
