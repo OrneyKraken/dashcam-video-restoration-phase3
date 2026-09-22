@@ -1,0 +1,17 @@
+{
+  "run_name": "dashmamba_stage2_track_a_test",
+  "model": "dashmamba_wrapper:restore",
+  "tracks": [
+    "A"
+  ],
+  "splits": [
+    "test"
+  ],
+  "max_frames": 80,
+  "limit_clips": null,
+  "tof": true,
+  "lpips": false,
+  "brisque_niqe": false,
+  "finished": "2026-09-22T14:53:05",
+  "elapsed_sec": 17509.5
+}

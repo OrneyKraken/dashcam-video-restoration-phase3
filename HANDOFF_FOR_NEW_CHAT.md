@@ -91,15 +91,44 @@ both *given* the true σ. This asymmetry favours the baselines and must be state
 
 ---
 
-## 3. What still needs running
+## 3. RESULTS ARE IN — read `RESULTS_AND_DIAGNOSIS.md`
+
+**Stage-2 evaluation is complete.** Full numbers, significance tests and a critical
+diagnosis are in **`RESULTS_AND_DIAGNOSIS.md`**. Summary:
+
+- **Significant wins:** +2.25 dB at σ50 and +0.98 dB on realistic sensor noise (vs RVRT,
+  paired per-clip, n=71) — while running **blind** and with **14.7× fewer parameters**.
+- **Significant loss:** −1.36 dB at σ15 (mild noise).
+- **Tie** at σ25 (confidence interval spans zero).
+- **tOF temporal consistency is WORSE than both working baselines on all four axes** —
+  despite that being the weakness the architecture was designed to fix.
+
+### ⚠️ The critical finding
+
+**Both proposed "novel" signals are inactive in the trained model.** Measured directly:
+
+- **Signal B** (blind reliability → Δ) outputs a constant **1.0000, std 0.0000** at every
+  noise level. Pre-sigmoid logits average **+44**; the sigmoid is saturated and its
+  gradient is dead.
+- **Signal A** (motion confidence → fusion gate) sits at a constant **0.993 ± 0.004**;
+  the flow network collapsed to ~**0.002 px** displacement, so the consistency check
+  always reports "perfectly consistent."
+
+The gains are real but come from the **bidirectional selective-scan temporal core**, not
+from the adaptive mechanisms. This also explains the low-noise loss and the tOF shortfall.
+**Do not claim the decoupled-signal design works.** `RESULTS_AND_DIAGNOSIS.md` §2 has the
+root causes and concrete fixes.
+
+## 3b. What still needs running
 
 | # | Task | Time (RTX 4080 SUPER) | Why it matters |
 |---|---|---|---|
-| 1 | Evaluate **Stage-2** DashMamba | ~5 h | The headline 4-way comparison. **This is the only thing blocking a result.** |
-| 2 | Evaluate **Stage-1** DashMamba | ~5 h | Fairness: the baselines are pretrained-only, and Stage-1 DashMamba is likewise public-data-only. Makes it apples-to-apples |
+| 1 | ~~Evaluate Stage-2~~ | — | ✅ **DONE** |
+| 2 | Evaluate **Stage-1** DashMamba | ~4.5 h | Fairness: baselines are pretrained-only; Stage-1 DashMamba is likewise public-data-only. **In progress** |
 | 3 | Qualitative before/after visuals | ~30 min | `scripts/make_qualitative.py` |
-| 4 | Statistical significance over the 71 per-clip values | ~5 min | Cheap; closes a gap examiners probe |
-| 5 | Ablation (flags already exist in the model) | 2 cells ≈ 6 h, 5 cells ≈ 16 h | Shows *which* signal earns the gain |
+| 4 | ~~Statistical significance~~ | — | ✅ **DONE** — in `RESULTS_AND_DIAGNOSIS.md` |
+| 5 | Ablation (flags exist in the model) | 2 cells ≈ 6 h | **Low value now** — the signals are inert, so toggling them will show ~no effect. Would confirm the diagnosis, not add new information |
+| 6 | **Fix and retrain** (optional, high effort) | ~7 h train + 5 h eval | Unsaturate Signal B, supervise the flow net. Could deliver the designed gains — see `RESULTS_AND_DIAGNOSIS.md` §2 |
 
 ---
 
