@@ -22,8 +22,24 @@ import numpy as np
 P3_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(P3_ROOT / "models"))
 
-DEFAULT_CKPT = P3_ROOT / "runs" / "finetune_stage2" / "last.pt"
-CKPT_PATH = Path(os.environ.get("THESIS_P3_DASHMAMBA_CKPT", DEFAULT_CKPT))
+# Look in both layouts: the training machine writes runs/<name>/last.pt, while
+# the git repo / portable package ships checkpoints/<name>.pt. Checking both
+# means the same wrapper works unmodified in either place.
+CKPT_CANDIDATES = [
+    P3_ROOT / "runs" / "finetune_stage2" / "last.pt",
+    P3_ROOT / "checkpoints" / "finetune_stage2.pt",
+]
+
+
+def _default_ckpt() -> Path:
+    for c in CKPT_CANDIDATES:
+        if c.exists():
+            return c
+    return CKPT_CANDIDATES[0]  # report the canonical path in the error message
+
+
+CKPT_PATH = Path(os.environ["THESIS_P3_DASHMAMBA_CKPT"]) if os.environ.get(
+    "THESIS_P3_DASHMAMBA_CKPT") else _default_ckpt()
 
 # Model config must match how the checkpoint was TRAINED. Overridable by env
 # var so an ablation-cell checkpoint (trained with different flags) can be
