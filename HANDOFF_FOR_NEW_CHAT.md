@@ -1,8 +1,31 @@
 # Handoff — read this first
 
-You are picking up a **BRAC University undergraduate CS thesis, Phase 3**. This file
-is written for a fresh assistant/chat with no prior context. Everything needed to
-continue is either in this repo or described below.
+**Last updated:** 2026-09-22, after all evaluation and visual work completed.
+**Status: the thesis is complete and defensible. Nothing is half-finished.**
+
+You are picking up a **BRAC University undergraduate CS thesis, Phase 3**. This file is
+written for a fresh assistant/chat on a new machine with no prior context. Everything
+needed to continue is either in this repo or described below.
+
+---
+
+## 0. Thirty-second summary
+
+A custom blind video-restoration architecture (**DashMamba**, 886,840 parameters) was
+designed, implemented, trained in two stages, and benchmarked against three published
+baselines on a purpose-built dashcam dataset.
+
+**It wins where it matters, and the win survives the fairness check.** Trained on the
+same public data as the baselines, with no dashcam footage and no access to the true
+noise level, it beats RVRT — a 14.7× larger model that *is* given the true noise level —
+by **+1.79 dB at σ50** (95% CI [+1.05, +2.52], n = 71 clips).
+
+**It also contains a documented negative result.** Direct measurement of the trained
+weights shows the two "novel" control signals the architecture was built around never
+activated. The gains come from the rest of the network. This is reported honestly, with
+root causes and specific fixes, and it explains both places the model loses.
+
+Everything remaining is optional strengthening.
 
 ---
 
@@ -38,223 +61,272 @@ oversight — but expect an examiner to ask.
 
 ---
 
-## 2. What has been done
+## 2. What exists, in the order it was built
 
-### Baselines — complete
-Three published models evaluated on Track A under one identical protocol
-(71 clips × 80 frames × 4 degradation axes = 284 clip-runs each). Results are in
-`results/`. **Do not re-run these.**
+| # | Artifact | Where |
+|---|---|---|
+| 1 | Dataset — 755 clips / 226,236 frames | **not in git** — see §5 |
+| 2 | Three baselines benchmarked under one identical protocol | `results/{rvrt,bvrpp,fastdvdnet}_track_a_test/` |
+| 3 | Baseline weakness analysis | `docs/Phase3_Baseline_Weakness_Analysis.docx` |
+| 4 | DashMamba architecture | `models/dashmamba.py`, `ARCHITECTURE.md` |
+| 5 | Two-stage training driver | `scripts/train_dashmamba.py` |
+| 6 | Trained checkpoints, both stages (~10 MB each) | `checkpoints/` ✅ **in git** |
+| 7 | Stage-2 evaluation + paired significance tests | `results/dashmamba_stage2_track_a_test/` |
+| 8 | Signal-inactivity diagnosis | `RESULTS_AND_DIAGNOSIS.md` §2 |
+| 9 | **Stage-1 evaluation — the fairness comparison** | `results/dashmamba_stage1_track_a_test/` |
+| 10 | Qualitative before/after visuals + chroma analysis | `figures/`, `QUALITATIVE_RESULTS.md` |
 
-| Degradation | Input | RVRT | BasicVSR++ | FastDVDnet |
-|---|---|---|---|---|
-| gaussian / low (σ15) | 25.14 | 39.13 | 26.48 | 38.75 |
-| gaussian / medium (σ25) | 20.96 | 35.53 | 22.42 | 35.31 |
-| gaussian / high (σ50) | 15.50 | 28.79 | 16.54 | 28.64 |
-| poisson_gaussian / realistic | 23.67 | 35.54 | 24.98 | 35.37 |
-
-*(PSNR in dB. All three are **pretrained-only** — none was fine-tuned on dashcam data.)*
-
-BasicVSR++ scores poorly for a **known reason**: its only public checkpoint is trained
-for compressed-video artifact removal, not sensor noise. That is a domain mismatch, not
-an architectural verdict — and it is itself a finding, since BasicVSR++ has the most
-elaborate alignment machinery of the three.
-
-### Weakness analysis — complete
-See `docs/Phase3_Baseline_Weakness_Analysis.docx`. Two findings drive the architecture:
-
-- **Temporal axis:** tOF (frame-to-frame warping error) is worst on **daytime** footage
-  for *every* baseline without exception — including the broken one. A motion/scene-
-  complexity effect.
-- **Spatial axis:** RVRT and FastDVDnet lose 4–5 dB PSNR specifically when severe
-  Gaussian noise combines with **evening/night** lighting. A noise×illumination effect,
-  orthogonal to motion.
-
-These peak under *opposite* conditions, which is why DashMamba keeps them decoupled.
-
-### DashMamba — designed, implemented, trained
-`models/dashmamba.py`. Five stages; two **decoupled** control signals:
-
-- **Signal A** (motion confidence, from forward/backward flow consistency) gates *only*
-  the feature-fusion stage.
-- **Signal B** (blind noise/exposure reliability, from a small CBDNet-style estimator)
-  modulates *only* Δ, the state-space discretization step.
-
-Training complete:
-
-| Stage | Data | Steps | Final loss (ema) | Checkpoint |
-|---|---|---|---|---|
-| 1 — pretrain | DAVIS 2017 (public) | 28,800 | 0.0197 | `checkpoints/pretrain_stage1.pt` |
-| 2 — fine-tune | 360 dashcam train clips | 11,000 | 0.0136 | `checkpoints/finetune_stage2.pt` |
-
-**DashMamba is blind** — it never receives the true noise level. RVRT and FastDVDnet are
-both *given* the true σ. This asymmetry favours the baselines and must be stated in the paper.
+Evaluation protocol, applied identically to every model: **Track A test, 71 clips ×
+80 frames × 4 degradation axes = 284 clip-runs per model.**
 
 ---
 
-## 3. RESULTS ARE IN — read `RESULTS_AND_DIAGNOSIS.md`
+## 3. The findings a new chat must not get wrong
 
-**Stage-2 evaluation is complete.** Full numbers, significance tests and a critical
-diagnosis are in **`RESULTS_AND_DIAGNOSIS.md`**. Summary:
+### 3.1 Lead with Stage-1, not Stage-2
 
-- **Significant wins:** +2.25 dB at σ50 and +0.98 dB on realistic sensor noise (vs RVRT,
-  paired per-clip, n=71) — while running **blind** and with **14.7× fewer parameters**.
-- **Significant loss:** −1.36 dB at σ15 (mild noise).
-- **Tie** at σ25 (confidence interval spans zero).
-- **tOF temporal consistency is WORSE than both working baselines on all four axes** —
-  despite that being the weakness the architecture was designed to fix.
+There are two DashMamba checkpoints and they answer different questions.
 
-### ⚠️ The critical finding
+| | Trained on | Use it for |
+|---|---|---|
+| **Stage-1** | DAVIS 2017 only | **The headline comparison.** Same condition as the baselines — no model has seen dashcam data. |
+| **Stage-2** | + Track A dashcam fine-tune | Quantifying what domain adaptation adds. **Not** a fair architecture comparison. |
 
-**Both proposed "novel" signals are inactive in the trained model.** Measured directly:
+Leading with Stage-2's +2.25 dB invites *"but you fine-tuned on the target domain and
+they didn't"*, which is fatal. Stage-1's **+1.79 dB** has no such hole.
 
-- **Signal B** (blind reliability → Δ) outputs a constant **1.0000, std 0.0000** at every
-  noise level. Pre-sigmoid logits average **+44**; the sigmoid is saturated and its
-  gradient is dead.
-- **Signal A** (motion confidence → fusion gate) sits at a constant **0.993 ± 0.004**;
-  the flow network collapsed to ~**0.002 px** displacement, so the consistency check
-  always reports "perfectly consistent."
+Decomposition: +2.25 dB total = **+1.79 dB architecture** + **+0.46 dB fine-tuning.**
 
-The gains are real but come from the **bidirectional selective-scan temporal core**, not
-from the adaptive mechanisms. This also explains the low-noise loss and the tOF shortfall.
-**Do not claim the decoupled-signal design works.** `RESULTS_AND_DIAGNOSIS.md` §2 has the
-root causes and concrete fixes.
+### 3.2 The model is blind; the baselines are not
 
-## 3b. What still needs running
+DashMamba estimates its own noise level. RVRT and FastDVDnet are **handed the true σ** —
+their public checkpoints are non-blind (see `scripts/rvrt_wrapper.py`). The asymmetry is
+*in the baselines' favour* and should be stated explicitly, not buried.
 
-| # | Task | Time (RTX 4080 SUPER) | Why it matters |
+### 3.3 Both proposed signals are dead
+
+Measured directly from the trained checkpoint:
+
+- **Signal B** (blind reliability → Δ): outputs a constant **1.0000**, std 0.0000, at
+  every noise level. Its sigmoid is saturated — pre-activation logits average **+44**,
+  where the gradient is ~0, so it could never recover.
+- **Signal A** (motion confidence → fusion gate): constant **~0.993**, because the flow
+  network collapsed to **0.002 px** displacement, so the consistency check always reports
+  "perfectly aligned".
+
+**Do not claim the decoupled-signal design works.** It is reported as a diagnosed
+negative result — a strength when presented that way. It also explains both weaknesses:
+
+- The **monotonic noise trend** (+1.79 / −0.51 / −1.57 dB as input PSNR rises
+  15.5 → 21.0 → 25.1) is exactly what a model that cannot sense noise level produces:
+  one fixed denoising strength, right at σ50 and too aggressive at σ15.
+- **tOF never beats the baselines**, because nothing in the trained model actually
+  targets temporal consistency.
+
+### 3.4 The chroma finding
+
+DashMamba's mean colour error is ~10× *lower* than the baselines' (0.002 vs 0.008–0.026),
+but it leaves residual chroma noise (1.18–2.18× oversaturated), while RVRT and FastDVDnet
+suppress chroma noise by desaturating (0.69–0.92×). **This is the mechanism behind the
+PSNR/SSIM divergence** (+1.79 dB PSNR but −0.041 SSIM at σ50). An earlier draft
+attributed that to over-smoothing; the measurements contradict it.
+
+### 3.5 Claims to avoid
+
+- ❌ The decoupled-signal design works.
+- ❌ Improved temporal consistency — tOF is worse on 3 of 4 axes, tied on the 4th.
+- ❌ A win at medium noise (statistical tie) or low noise (significant **loss**).
+- ❌ BasicVSR++ is architecturally bad — its ~16 dB is a **checkpoint domain mismatch**
+  (trained for compressed-video artifacts, not sensor noise). It is kept in the tables
+  because silently dropping a poor performer would misrepresent the study.
+- ❌ Citing **"MVSSM"** — that reference could not be verified and is likely fabricated.
+  MambaOFR, EVDM and EVSSM are real and were verified.
+
+---
+
+## 4. Headline numbers
+
+Stage-1 vs. baselines, paired per-clip, n = 71, 95% CI:
+
+| Axis | vs RVRT | vs FastDVDnet | Verdict |
 |---|---|---|---|
-| 1 | ~~Evaluate Stage-2~~ | — | ✅ **DONE** |
-| 2 | Evaluate **Stage-1** DashMamba | ~4.5 h | Fairness: baselines are pretrained-only; Stage-1 DashMamba is likewise public-data-only. **In progress** |
-| 3 | Qualitative before/after visuals | ~30 min | `scripts/make_qualitative.py` |
-| 4 | ~~Statistical significance~~ | — | ✅ **DONE** — in `RESULTS_AND_DIAGNOSIS.md` |
-| 5 | Ablation (flags exist in the model) | 2 cells ≈ 6 h | **Low value now** — the signals are inert, so toggling them will show ~no effect. Would confirm the diagnosis, not add new information |
-| 6 | **Fix and retrain** (optional, high effort) | ~7 h train + 5 h eval | Unsaturate Signal B, supervise the flow net. Could deliver the designed gains — see `RESULTS_AND_DIAGNOSIS.md` §2 |
+| gaussian / high (σ50) | **+1.79** [+1.05, +2.52], t=+4.86 | **+1.94** [+1.34, +2.54], t=+6.50 | **Significant win** |
+| poisson_gaussian | **+0.81** [+0.38, +1.25], t=+3.70 | **+0.99** [+0.63, +1.35], t=+5.50 | **Significant win** |
+| gaussian / medium (σ25) | −0.51, t=−1.51 | −0.29, t=−1.23 | Tie (CI spans 0) |
+| gaussian / low (σ15) | **−1.57**, t=−6.66 | **−1.20**, t=−7.57 | Significant loss |
+
+Parameters: DashMamba **886,840** · FastDVDnet 2.48 M · RVRT 13.07 M · BasicVSR++ 44.08 M.
+
+Full tables — SSIM, tOF, per-lighting breakdowns, Stage-2, chroma — in
+`RESULTS_AND_DIAGNOSIS.md`. Regenerate every significance figure in seconds with
+`python scripts/paired_significance.py`.
 
 ---
 
-## 4. What you need to actually run it
+## 5. What you need on the new PC
 
-### Two pieces
+### 5.1 From git — clone and you have it
 
-1. **This repo** (~22 MB) — code, checkpoints, metadata, baseline results, docs.
-2. **The frame data** (~7.2 GB) — **NOT in git.** The full dataset is 257 GB; the
-   evaluation only reads 71 clips × 80 frames. That subset was packaged separately as
-   `dashmamba_eval_data/`. Copy its `dataset/` folder into your clone so this path exists:
+Private repo: `github.com/OrneyKraken/dashcam-video-restoration-phase3`
 
 ```
-<repo>/dataset/_refpool/<clip_stem>/frame_000001.png ...
+models/dashmamba.py              the architecture
+checkpoints/pretrain_stage1.pt   Stage-1 weights (~10 MB)  ✅ committed
+checkpoints/finetune_stage2.pt   Stage-2 weights (~10 MB)  ✅ committed
+scripts/                         training, evaluation, wrappers, visuals
+metadata/                        clip lists and split definitions
+results/                         per-clip CSVs for all five runs
+figures/                         detail crops (visual proof)
+docs/                            the four .docx thesis documents
+*.md                             this file + README + RESULTS_AND_DIAGNOSIS + ARCHITECTURE + QUALITATIVE_RESULTS
 ```
 
-**Why a subset is valid:** degraded inputs are regenerated deterministically from clean
-frames, seeded per (clip, frame, kind, level). A folder holding only the first 80 frames
-gives **bit-identical scores** to the full dataset. This is not an approximation.
+**The checkpoints are committed**, so every reported number can be reproduced without
+retraining anything.
 
-If the machine already has the full `thesis_p3` dataset, point `THESIS_P3_ROOT` at that
-instead and ignore the 7.2 GB package.
+### 5.2 Dataset — NOT in git (262 GB total)
 
-### Setup
+You only need **one part** for everything described here:
 
-DashMamba is **pure PyTorch — no custom CUDA extensions**. No compiler, no CUDA toolkit.
-(The baselines needed those; they're already evaluated, so you never have to build them.)
+> ### **Track A, test split** — 71 clips × 80 frames ≈ **7.2 GB**
+> This is the entire evaluation set. All 284 clip-runs per model use only this.
+
+| Goal | Data needed | Size |
+|---|---|---|
+| Reproduce all reported numbers | **Track A test split only** | **~7.2 GB** |
+| Re-run Stage-2 fine-tuning | + Track A train split | ~40 GB |
+| Re-run Stage-1 pretraining | + DAVIS 2017 (public download) | ~5 GB |
+| Tracks B / C | never used — skip | — |
+
+A portable package of exactly these test clips was built by
+`scripts/package_for_eval.py` on the original machine:
+
+- `F:\dashmamba_package\dashmamba_eval_data` — 7.16 GB, 71 clips × 80 frames
+- `F:\dashmamba_package\dashmamba_eval_core` — 22 MB, code + checkpoints
+
+**Copy those two folders** rather than rebuilding from the 262 GB original. If you must
+rebuild from raw footage: `scripts/p3_01_make_splits.py` then
+`scripts/p3_02_build_dataset.py`. Splits are deterministic and defined in `metadata/`.
+
+### 5.3 Software
+
+| Requirement | Notes |
+|---|---|
+| Python 3.10 | 3.12 is installed on the old machine but unused |
+| PyTorch + CUDA | any recent build |
+| opencv-python, numpy, scipy | metrics and visuals |
+| **Only if you re-run RVRT** | MSVC Build Tools (C++ workload), CUDA Toolkit 12.4, `ninja`, `wheel` |
+
+**DashMamba needs no custom CUDA extension and none of the MSVC toolchain.** That burden
+is entirely RVRT's — it JIT-compiles a deformable-attention kernel on first use. If you
+are only working on DashMamba, ignore that row completely.
+
+---
+
+## 6. What is left to do
+
+Nothing is required. In descending order of value:
+
+| Task | Effort (RTX 4080 S) | Why / why not |
+|---|---|---|
+| **Fix Signal B and retrain** | ~7 h train + 5 h eval | Highest value. Remove the output sigmoid from `ReliabilityEstimator` (predict log-σ directly), or supervise it against the known σ during Stage-1, where σ *is* available. **Testable prediction: should recover most of the −1.57 dB low-noise deficit.** |
+| Fix Signal A | +2 h | Initialise the flow net from pretrained SPyNet, or add a photometric warping loss so alignment is trained directly rather than only implicitly rewarded. |
+| Chroma-aware loss | ~7 h | Addresses §3.4 — should close the SSIM gap. |
+| Tracks B / C evaluation | ~5 h each | Broadens scope; deliberately skipped under time pressure. |
+| Ablation over the three flags | ~6 h | **Low value** — the signals are measurably inert, so it would confirm §3.3, not inform it. |
+
+On a 16 GB RTX 5050 laptop, budget roughly **1.8–2.2×** these times and drop
+`DASHMAMBA_MAX_FRAMES` to ~24 to stay inside VRAM.
+
+---
+
+## 7. Running things
+
+### Evaluate DashMamba (no special toolchain needed)
 
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-pip install opencv-python numpy requests
-
-# Windows
-set THESIS_P3_ROOT=C:\path\to\repo
-# Linux/Mac
-export THESIS_P3_ROOT=/path/to/repo
+export THESIS_P3_DASHMAMBA_CKPT=/path/to/repo/checkpoints/pretrain_stage1.pt   # Stage-1
+python scripts/p3_evaluate.py \
+    --model-import dashmamba_wrapper:restore \
+    --run-name dashmamba_stage1_track_a_test \
+    --track A --split test --stride 2 --frames 80
 ```
 
-### Commands
+Point the variable at `finetune_stage2.pt` for Stage-2. On Windows use `set` instead of
+`export`. `per_clip.csv` is written incrementally, so the run is **resumable** —
+re-running skips clips already done. A full run is ~4.7 h on an RTX 4080 SUPER.
 
-From `scripts/`:
+### Regenerate the visuals
+
+```bat
+scripts\run_qualitative.bat --clips raw_video_013_clip_0009 raw_video_022_clip_0018 raw_video_021_clip_0024 ^
+    --kind gaussian --level high --frames 40 --save-frames 0 20
+```
+
+Use the `.bat` wrapper, not the `.py` directly — see traps 5 and 6 below.
+
+### Significance tests
 
 ```bash
-# 1. headline result (Stage-2, fine-tuned)
-python -u p3_evaluate.py --model-import dashmamba_wrapper:restore \
-    --tracks A --splits test --stride 2 --max-frames 80 \
-    --run-name dashmamba_stage2_track_a_test
-
-# 2. fair comparison (Stage-1, public data only)
-#    Windows: set THESIS_P3_DASHMAMBA_CKPT=C:\path\to\repo\checkpoints\pretrain_stage1.pt
-python -u p3_evaluate.py --model-import dashmamba_wrapper:restore \
-    --tracks A --splits test --stride 2 --max-frames 80 \
-    --run-name dashmamba_stage1_track_a_test
-
-# 3. before/after visuals
-python make_qualitative.py --clips raw_video_008_clip_0000 raw_video_022_clip_0001 \
-    --kind gaussian --level high --frames 40 --models dashmamba
+python scripts/paired_significance.py     # reads results/, prints every reported figure
 ```
 
-> **Never change `--stride` or `--max-frames`.** The baselines were run with exactly
-> these settings. Changing them silently invalidates the entire comparison.
+---
 
-### Resuming an interrupted run
+## 8. Traps that cost real time — do not rediscover these
 
-`p3_evaluate.py` writes `per_clip.csv` incrementally. To resume — even on a different
-machine — copy `results/<run-name>/per_clip.csv` across and re-issue the **same command**.
-It skips completed clips.
+1. **The `low_light` training kind causes identity collapse.** Its inputs are ~3 dB, so
+   it dominates the loss and the model learns to output its input on the noise tasks
+   (+0.01 dB). `TRAIN_KINDS = ("gaussian", "poisson_gaussian")` in
+   `scripts/train_dashmamba.py` is deliberate. **Do not add `low_light` back.** Cost
+   ~6.5 h of discarded compute to diagnose.
+2. **Never `nn.init.zeros_` a layer's final weight matrix.** An all-zero weight makes the
+   backward Jacobian zero too, starving every earlier layer of gradient — 40 of 44
+   parameter tensors received none. Use `.mul_(0.01)` instead.
+3. **`CosineAnnealingLR` is recursive**, so resuming from a checkpoint pins the learning
+   rate at its minimum permanently. `train_dashmamba.py` uses a stateless closed-form
+   `cosine_lr()`.
+4. **Windows DataLoader workers are counterproductive here** — spawn-based IPC made
+   training **11× slower**. Use `--num-workers 0`.
+5. **RVRT and FastDVDnet collide on the module name `models`** (RVRT ships a `models/`
+   package, FastDVDnet a `models.py`). Loading both in one process breaks the second with
+   `'models' is not a package`. The metric runs never hit this because each imported a
+   single model; `make_qualitative.py` isolates each model in a subprocess.
+6. **RVRT's CUDA build needs scratch space on a non-full drive.** If `%TEMP%` is full,
+   nvcc dies with `No space left on device`, surfaced only as the useless
+   `ninja: build stopped: subcommand failed`. `run_qualitative.bat` redirects
+   `TORCH_EXTENSIONS_DIR` and `TMP`/`TEMP`.
+7. **The original machine's C: drive was 100% full** (931 GB, with ~790 GB in
+   `System Volume Information` / System Restore). Unrelated to the thesis, but it broke
+   RVRT builds. On a new machine, simply keep scratch space free.
+8. **Git Bash mangles `/c`-style arguments** — use `cmd.exe //c` or absolute paths.
 
 ---
 
-## 5. Reading the results
+## 9. Document map
 
-`results/<run-name>/summary.csv`: one row per (kind, level) axis, then a per-lighting
-breakdown below a blank line.
-
-- `psnr`, `ssim` — restored quality (higher better)
-- `psnr_in` — the degraded input's own score, i.e. the "before" number
-- `tof`, `tof_in` — temporal warping error, output and input (**lower** better)
-
-Compare against `results/rvrt_track_a_test/`, `results/bvrpp_track_a_test/`,
-`results/fastdvdnet_track_a_test/`.
-
----
-
-## 6. Traps that have already cost time — do not repeat
-
-1. **Never re-add `low_light` to DashMamba's training mix.** An earlier run trained on
-   gaussian + poisson_gaussian + low_light. Low-light inputs are near-black (~3 dB PSNR),
-   so their loss dominated; the model learned *only* brightness restoration and scored
-   **+0.01 dB** on the denoising it was being evaluated on — a silent identity collapse
-   that looked fine in the training loss. Train a **separate** checkpoint for Track B.
-2. **Use `--num-workers 0`** for dashcam-data training on Windows. DataLoader workers use
-   spawn and pickle ~42 MB per batch through IPC: measured 1.05 s/batch with 0 workers vs
-   2.47 s/batch with 4. More workers is *slower*.
-3. **Don't zero-initialize both weight and bias** of a layer you want to start near-zero.
-   A fully-zero weight matrix blocks backprop through that layer entirely (the backward
-   Jacobian *is* the weight matrix), starving everything upstream of gradient.
-4. **Don't rely on `CosineAnnealingLR` across a resume.** It's recursive (next lr computed
-   from current lr), so restoring only optimizer state pins it permanently at its minimum.
-   The training script uses a stateless closed-form cosine instead.
-5. **This machine's antivirus intermittently locks freshly written binaries**, causing
-   git "unable to index file" and pip SSL errors. Retrying works.
+| File | Contents |
+|---|---|
+| `README.md` | Project entry point, status, how to run |
+| **`HANDOFF_FOR_NEW_CHAT.md`** | **This file — start here** |
+| `RESULTS_AND_DIAGNOSIS.md` | All numbers, significance tests, diagnosis, the claim to make and the claims to avoid |
+| `ARCHITECTURE.md` | What `models/dashmamba.py` actually builds, component by component, with parameter budget |
+| `QUALITATIVE_RESULTS.md` | Visual material, clip-selection rationale, chroma analysis |
+| `docs/Phase3_Baseline_Dataset_Scope.docx` | Exactly which data every run used |
+| `docs/Phase3_Baseline_Weakness_Analysis.docx` | The measured findings that motivated the design |
+| `docs/Phase3_DashMamba_Architecture.docx` | Thesis-body architecture write-up + verified prior art |
+| `docs/Phase3_Session_Handoff_2.docx` | Earlier session handoff (superseded by this file) |
 
 ---
 
-## 7. Honest status
+## 10. If you are a new chat, start here
 
-- **Enough for an undergrad defense?** Likely yes, once task 1 above is done — the dataset,
-  the benchmark, the measured weakness analysis, and a custom architecture is well above
-  typical scope.
-- **Enough for a Q2 journal?** Not yet. Needs the full 5-cell ablation, and either
-  fine-tuned baselines or the Stage-1 fairness framing argued carefully. Roughly 45 h more.
-- **Is DashMamba actually better?** **Unknown.** Training converged well, but that only
-  proves it learned the objective — not that it beats RVRT or FastDVDnet. Task 1 answers
-  this. If it loses, a negative result with a thorough post-mortem is still legitimate
-  thesis work; frame it deliberately rather than being surprised by it.
-
----
-
-## 8. Other documents
-
-- `README.md` — repo layout and quick start
-- `docs/Phase3_DashMamba_Architecture.docx` — design rationale, **verified prior-art
-  positioning** (which novelty claims are defensible and which are not — read §6 and §8
-  before writing the paper; one citation proposed by an external document, "MVSSM",
-  could not be verified and appears fabricated — **do not cite it**)
-- `docs/Phase3_Baseline_Weakness_Analysis.docx` — the per-lighting findings
-- `docs/Phase3_Baseline_Dataset_Scope.docx` — exactly which data produced which numbers
-- `docs/Phase3_Session_Handoff_2.docx` — environment setup and every gotcha encountered
+1. Read §3 (findings you must not get wrong) and §4 (the numbers).
+2. Confirm the dataset: you need **Track A test split, ~7.2 GB** (§5.2). Ask the user
+   where it is rather than assuming a path.
+3. Confirm the checkpoints exist: `checkpoints/pretrain_stage1.pt` and
+   `checkpoints/finetune_stage2.pt`.
+4. **Do not re-run evaluations to "verify".** The per-clip CSVs are committed and a full
+   run is ~4.7 h. Use `scripts/paired_significance.py`, which takes seconds.
+5. The likely next request is either **writing the thesis text from these results**, or
+   **the Signal B fix** in §6. Both are fully specified above.

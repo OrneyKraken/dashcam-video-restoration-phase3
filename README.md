@@ -202,10 +202,11 @@ python -u p3_evaluate.py --model-import dashmamba_wrapper:restore \
     --tracks A --splits test --stride 2 --max-frames 80 \
     --run-name dashmamba_stage2_track_a_test
 
-# Before/after visuals
-python make_qualitative.py \
-    --clips raw_video_008_clip_0000 raw_video_022_clip_0001 raw_video_013_clip_0001 \
-    --kind gaussian --level high --frames 40 --models dashmamba
+# Before/after visuals - ALREADY DONE; this is the command that produced figures/
+# Use the .bat wrapper, not the .py directly: RVRT JIT-compiles a CUDA kernel and
+# needs MSVC + CUDA 12.4 + ninja, and the build must not land on a full drive.
+run_qualitative.bat --clips raw_video_013_clip_0009 raw_video_022_clip_0018 raw_video_021_clip_0024 ^
+    --kind gaussian --level high --frames 40 --save-frames 0 20
 ```
 
 > **Never change `--stride` or `--max-frames`.** The baselines were evaluated with exactly
@@ -254,6 +255,13 @@ breakdown below a blank line.
 5. **Watch for saturated sigmoids in estimator heads** — this is exactly how Signal B died.
 6. **This machine's antivirus intermittently locks freshly written binaries**, causing git
    "unable to index file" and pip SSL errors. Retrying works.
+7. **RVRT and FastDVDnet collide on the module name `models`** (RVRT ships a `models/`
+   package, FastDVDnet a `models.py`). Loading both in one process breaks the second.
+   The metric runs never hit this because each imported one model; `make_qualitative.py`
+   isolates each model in a subprocess.
+8. **RVRT's CUDA build needs scratch space.** With a full `%TEMP%` drive, nvcc fails with
+   `No space left on device`, surfaced only as `ninja: build stopped: subcommand failed`.
+   `run_qualitative.bat` redirects `TORCH_EXTENSIONS_DIR` and `TMP`/`TEMP`.
 
 ---
 
@@ -263,6 +271,8 @@ breakdown below a blank line.
 |---|---|
 | [`HANDOFF_FOR_NEW_CHAT.md`](HANDOFF_FOR_NEW_CHAT.md) | Full context for a fresh assistant — thesis, history, commands, traps |
 | [`RESULTS_AND_DIAGNOSIS.md`](RESULTS_AND_DIAGNOSIS.md) | All results, significance tests, the signal-inactivity diagnosis, what to claim and what not to |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | What `models/dashmamba.py` actually builds — data flow, every component, parameter budget, training details, and what the trained model really learned |
+| [`QUALITATIVE_RESULTS.md`](QUALITATIVE_RESULTS.md) | Before/after visual material, clip-selection rationale, and the chroma analysis |
 | `docs/Phase3_DashMamba_Architecture.docx` | Design rationale + **verified prior-art positioning**. One citation proposed externally ("MVSSM") could not be verified and appears fabricated — **do not cite it** |
 | `docs/Phase3_Baseline_Weakness_Analysis.docx` | Per-lighting findings that motivated the design |
 | `docs/Phase3_Baseline_Dataset_Scope.docx` | Exactly which data produced which numbers |
