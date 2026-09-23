@@ -90,8 +90,9 @@ so the model *cannot* modulate its strength.
 | poisson_gaussian | **0.937** | 0.921 | 0.920 | **+0.016** (t = +5.4) |
 
 At σ50 the +1.79 dB PSNR win comes with −0.041 SSIM: **more pixel-accurate, less
-structurally faithful** — consistent with over-smoothing. On realistic sensor noise
-DashMamba wins both metrics, which is the strongest single cell in the study.
+structurally faithful.** The chroma measurements below identify the cause — residual
+colour noise, *not* over-smoothing. On realistic sensor noise DashMamba wins both
+metrics, which is the strongest single cell in the study.
 
 ### tOF temporal consistency — lower is better
 
@@ -106,6 +107,37 @@ DashMamba wins both metrics, which is the strongest single cell in the study.
 architecture was explicitly designed to improve. It improves enormously over the
 degraded input (49.0 → 6.0) but only reaches parity with RVRT on one axis. §2 explains
 why: the motion signal never activated.
+
+### Chroma behaviour — why DashMamba wins PSNR but loses SSIM
+
+Measured on the qualitative clips (frame 20, σ50), comparing each model's output to
+ground truth:
+
+| Clip (lighting) | Metric | RVRT | FastDVDnet | **DashMamba** |
+|---|---|---|---|---|
+| night | mean colour error \|bias\| | 0.0243 | 0.0228 | **0.0019** |
+| day | | 0.0075 | 0.0070 | **0.0022** |
+| evening | | 0.0259 | 0.0245 | **0.0024** |
+| night | saturation vs GT | 0.69× | 0.80× | **1.37×** |
+| day | | 0.76× | 0.79× | **1.18×** |
+| evening | | 0.71× | 0.92× | **2.18×** |
+
+Two opposite failure modes:
+
+- **RVRT and FastDVDnet desaturate.** They suppress chroma noise by suppressing chroma
+  (0.69–0.92×) and brighten the whole frame by roughly +0.02. Clean-looking, but
+  colour-shifted away from ground truth.
+- **DashMamba preserves mean colour** an order of magnitude more faithfully
+  (\|bias\| ~0.002 vs ~0.008–0.026) but **leaves residual chroma noise**, up to 2.18×
+  oversaturated in the evening clip.
+
+**This explains the PSNR/SSIM divergence at σ50** (+1.79 dB PSNR, −0.041 SSIM). Blotchy
+leftover colour noise degrades the local structural statistics SSIM measures, while
+mean-squared error still rewards DashMamba's more accurate colour. The two metrics are
+measuring the two different failure modes above, and neither model is uniformly better.
+
+A chroma-aware loss term, or denoising in a luma/chroma-separated space, is the obvious
+remedy and a clean piece of future work.
 
 ### Efficiency — unambiguous win
 

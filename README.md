@@ -22,7 +22,7 @@ architecture for dashcam footage, plus a benchmark of three published baselines 
 | **Stage-2 evaluation (headline result)** | ✅ **DONE** — see `RESULTS_AND_DIAGNOSIS.md` |
 | Statistical significance testing | ✅ Done |
 | **Stage-1 evaluation (fairness comparison)** | ✅ **DONE — architecture win confirmed** |
-| Qualitative before/after visuals | ⬜ Not started (~30 min) |
+| Qualitative before/after visuals | ✅ **DONE** — `figures/`, `QUALITATIVE_RESULTS.md` |
 | Ablation study | ⬜ Low value now — signals measured inactive, see below |
 | Tracks B and C | ⬜ Never evaluated — deliberate scope decision |
 
@@ -90,12 +90,12 @@ design works.** Root causes and fixes: `RESULTS_AND_DIAGNOSIS.md` §2.
 
 ## 3. What to run next
 
-If you can only do one thing, do **#2** (visuals) — #1 and #3 are now complete.
+**Everything required is now complete.** The items below are strengtheners only.
 
 | # | Task | Time (RTX 4080 SUPER) | Command / file |
 |---|---|---|---|
 | ~~1~~ | ~~**Stage-1 evaluation**~~ — ✅ **done**, see above | — | §5 below |
-| 2 | **Qualitative visuals** | ~30 min | `scripts/make_qualitative.py` |
+| ~~2~~ | ~~**Qualitative visuals**~~ — ✅ **done** | — | `QUALITATIVE_RESULTS.md` |
 | ~~3~~ | ~~Update docs with Stage-1 numbers~~ — ✅ **done** | — | `RESULTS_AND_DIAGNOSIS.md` |
 | 4 | *(Optional)* Fix both signals and retrain | ~7 h train + 5 h eval | `RESULTS_AND_DIAGNOSIS.md` §2 |
 | 5 | *(Low value)* Ablation | ~6 h | Signals are inert; would confirm, not inform |

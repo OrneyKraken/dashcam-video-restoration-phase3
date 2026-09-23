@@ -21,3 +21,7 @@ __pycache__/
 .ipynb_checkpoints/
 venv/
 .venv/
+
+# Committed qualitative figures are an explicit exception to the *.png rule above.
+!figures/
+!figures/*.png

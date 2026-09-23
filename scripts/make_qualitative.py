@@ -75,18 +75,31 @@ def main():
                     metavar=("X", "Y", "W", "H"), help="detail-crop box; default is a centre box")
     ap.add_argument("--out", default=None)
     ap.add_argument("--fps", type=int, default=15)
+    # Internal: restore ONE model in this process and write the result to .npy.
+    # Vendored repos collide on the top-level name "models" (RVRT ships a
+    # models/ package, FastDVDnet a models.py), so whichever is imported first
+    # poisons the other. Rather than patch the validated wrappers, the parent
+    # re-invokes this script once per model and each subprocess imports only
+    # the one wrapper it needs.
+    ap.add_argument("--dump-model", default=None, help=argparse.SUPPRESS)
+    ap.add_argument("--dump-path", default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
+
+    if args.dump_model:
+        fn, wants_meta = load_model(MODELS[args.dump_model])
+        stem = args.clips[0]
+        clean, names = ev.load_clip_rgb01(stem, args.frames)
+        lq = ev.degrade_clip(clean, names, stem, args.kind, args.level)
+        meta = {"kind": args.kind, "level": args.level, "clip_stem": stem}
+        sr = fn(lq, meta) if wants_meta else fn(lq)
+        np.save(args.dump_path, np.clip(np.asarray(sr, np.float32), 0, 1))
+        return
 
     out_root = Path(args.out) if args.out else (ev.P3_ROOT / "results" / "qualitative")
     out_root.mkdir(parents=True, exist_ok=True)
 
-    loaded = {}
-    for name in args.models:
-        try:
-            loaded[name] = load_model(MODELS[name])
-            print(f"[ok]   {name}")
-        except Exception as e:
-            print(f"[skip] {name}: {e}")
+    import subprocess, tempfile
+    tmpdir = Path(tempfile.mkdtemp(prefix="qual_"))
 
     for stem in args.clips:
         print(f"\n=== {stem}  ({args.kind}/{args.level}) ===")
@@ -94,10 +107,17 @@ def main():
         lq = ev.degrade_clip(clean, names, stem, args.kind, args.level)
 
         outs = {}
-        for name, (fn, wants_meta) in loaded.items():
-            meta = {"kind": args.kind, "level": args.level, "clip_stem": stem}
-            sr = fn(lq, meta) if wants_meta else fn(lq)
-            sr = np.clip(np.asarray(sr, np.float32), 0, 1)
+        for name in args.models:
+            npy = tmpdir / f"{stem}_{name}.npy"
+            cmd = [sys.executable, str(Path(__file__).resolve()),
+                   "--clips", stem, "--kind", args.kind, "--level", args.level,
+                   "--frames", str(args.frames),
+                   "--dump-model", name, "--dump-path", str(npy)]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 or not npy.exists():
+                print(f"    [skip] {name}: {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else 'failed'}")
+                continue
+            sr = np.load(npy)
             outs[name] = sr
             p = float(np.mean([ev.psnr(sr[i], clean[i]) for i in range(len(sr))]))
             print(f"    {name:12s} psnr={p:.2f} dB")
