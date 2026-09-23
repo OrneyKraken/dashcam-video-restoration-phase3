@@ -21,7 +21,7 @@ architecture for dashcam footage, plus a benchmark of three published baselines 
 | DashMamba training (Stage-1 + Stage-2) | ✅ Complete — `checkpoints/` |
 | **Stage-2 evaluation (headline result)** | ✅ **DONE** — see `RESULTS_AND_DIAGNOSIS.md` |
 | Statistical significance testing | ✅ Done |
-| **Stage-1 evaluation (fairness comparison)** | 🔄 **In progress — ~4 h** |
+| **Stage-1 evaluation (fairness comparison)** | ✅ **DONE — architecture win confirmed** |
 | Qualitative before/after visuals | ⬜ Not started (~30 min) |
 | Ablation study | ⬜ Low value now — signals measured inactive, see below |
 | Tracks B and C | ⬜ Never evaluated — deliberate scope decision |
@@ -45,14 +45,30 @@ architecture for dashcam footage, plus a benchmark of three published baselines 
 7. **Measured the trained model's own mechanisms** — and found both proposed signals
    inactive (see below).
 
-### Headline numbers (Stage-2, fine-tuned)
+### Headline numbers — the FAIR comparison (Stage-1: no dashcam training)
 
-| Axis | Input | **DashMamba** | RVRT | BasicVSR++ | FastDVDnet | Significance vs RVRT |
+All four models trained on public data only. None has seen dashcam footage.
+This is the comparison to lead with.
+
+| Axis | Input | **DashMamba S1** | RVRT | BasicVSR++ | FastDVDnet | Significance vs RVRT |
 |---|---|---|---|---|---|---|
-| gaussian / high (σ50) | 15.50 | **31.04** | 28.79 | 16.54 | 28.64 | **+2.25 dB, significant** |
-| poisson_gaussian | 23.67 | **36.52** | 35.54 | 24.98 | 35.37 | **+0.98 dB, significant** |
-| gaussian / medium (σ25) | 20.96 | 35.40 | 35.53 | 22.42 | 35.31 | tie (CI spans 0) |
-| gaussian / low (σ15) | 25.14 | 37.77 | **39.13** | 26.48 | 38.75 | **−1.36 dB, significant loss** |
+| gaussian / high (σ50) | 15.50 | **30.58** | 28.79 | 16.54 | 28.64 | **+1.79 dB** [+1.05, +2.52], significant |
+| poisson_gaussian | 23.67 | **36.35** | 35.54 | 24.98 | 35.37 | **+0.81 dB** [+0.38, +1.25], significant |
+| gaussian / medium (σ25) | 20.96 | 35.02 | 35.53 | 22.42 | 35.31 | −0.51 dB, tie (CI spans 0) |
+| gaussian / low (σ15) | 25.14 | 37.56 | **39.13** | 26.48 | 38.75 | **−1.57 dB**, significant loss |
+
+### What fine-tuning added (Stage-2 − Stage-1, paired, n = 71)
+
+| Axis | Gain | Stage-2 PSNR |
+|---|---|---|
+| gaussian / high | **+0.46 dB** (t = +12.0) | 31.04 |
+| gaussian / medium | **+0.38 dB** (t = +10.6) | 35.40 |
+| gaussian / low | **+0.21 dB** (t = +4.6) | 37.77 |
+| poisson_gaussian | **+0.17 dB** (t = +10.0) | 36.52 |
+
+Fine-tuning is a consistent but modest lift. At σ50 the architectural gain (+1.79 dB) is
+**~4×** the domain-adaptation gain (+0.46 dB) — the win is not an artifact of training
+on the target domain.
 
 **Parameters:** DashMamba **886,840** vs FastDVDnet 2.48 M, RVRT 13.07 M, BasicVSR++ 44.08 M.
 DashMamba also runs **blind** — it is never given the true noise level, while RVRT and
@@ -74,20 +90,21 @@ design works.** Root causes and fixes: `RESULTS_AND_DIAGNOSIS.md` §2.
 
 ## 3. What to run next
 
-If you can only do one thing, do **#1**.
+If you can only do one thing, do **#2** (visuals) — #1 and #3 are now complete.
 
 | # | Task | Time (RTX 4080 SUPER) | Command / file |
 |---|---|---|---|
-| 1 | **Stage-1 evaluation** — the fairness comparison | ~4.5 h | §5 below |
+| ~~1~~ | ~~**Stage-1 evaluation**~~ — ✅ **done**, see above | — | §5 below |
 | 2 | **Qualitative visuals** | ~30 min | `scripts/make_qualitative.py` |
-| 3 | Update docs with Stage-1 numbers | 15 min | — |
+| ~~3~~ | ~~Update docs with Stage-1 numbers~~ — ✅ **done** | — | `RESULTS_AND_DIAGNOSIS.md` |
 | 4 | *(Optional)* Fix both signals and retrain | ~7 h train + 5 h eval | `RESULTS_AND_DIAGNOSIS.md` §2 |
 | 5 | *(Low value)* Ablation | ~6 h | Signals are inert; would confirm, not inform |
 
-**Why #1 matters:** Stage-2 DashMamba was fine-tuned on dashcam data while the three
-baselines were not. An examiner will ask what the *architecture* contributed versus what
-domain adaptation contributed. Stage-1 DashMamba is public-data-only — the same condition
-as the baselines — so it answers exactly that.
+**Why #1 mattered (and what it showed):** Stage-2 DashMamba was fine-tuned on dashcam
+data while the three baselines were not, so an examiner would ask what the *architecture*
+contributed versus what domain adaptation contributed. The Stage-1 run answers it:
+on identical training data the architecture still wins by **+1.79 dB** at σ50, and
+fine-tuning accounts for only +0.46 dB of the original +2.25 dB figure.
 
 **If you cannot run anything right now:** you already have a complete, defensible result.
 `RESULTS_AND_DIAGNOSIS.md` contains the numbers, the significance tests, the diagnosis,
