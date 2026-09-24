@@ -1,5 +1,9 @@
 # Dataset frames - 262 GB, never commit. See README for how to obtain.
 dataset/
+# A leftover local copy of the portable eval package (dataset + a second core
+# checkout) - never commit; the repo IS the core, and dataset/ above already
+# covers the frames.
+/dashmamba_package/
 *.png
 *.jpg
 *.mp4
@@ -11,9 +15,11 @@ external/
 
 # Training/eval logs and scratch output
 logs/
-runs/*/            # checkpoints are committed under checkpoints/ instead
+# Checkpoints are committed under checkpoints/ instead of runs/.
+runs/*/
 !checkpoints/
 *.tmp
+.build/
 
 # Python
 __pycache__/
@@ -22,6 +28,8 @@ __pycache__/
 venv/
 .venv/
 
-# Committed qualitative figures are an explicit exception to the *.png rule above.
+# Committed qualitative figures are an explicit exception to the *.png rule
+# above - figures/**/*.png covers both figures/*.png and any subfolder
+# (figures/track_c/, figures/davis/, ...), which a bare figures/*.png misses.
 !figures/
-!figures/*.png
+!figures/**/*.png

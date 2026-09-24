@@ -1,0 +1,7 @@
+{
+  "description": "Charbonnier training loss (eps=1e-3), measured with no gradient update, on Track A test - held out from this checkpoint's training (Stage-1 trained on DAVIS trainval only). No training-loss curve was logged during the original run; this is the substitute. Produced by scripts/measure_loss.py.",
+  "checkpoint": "checkpoints/pretrain_stage1.pt", "trained_to_step": 28800,
+  "data": "track-a-test", "seq_len": 12, "crop": 192, "passes": 3, "n_windows": 213,
+  "loss": {"mean": 0.01310, "std": 0.00580, "se": 0.00040, "ci95": [0.01233, 0.01388]},
+  "by_kind": {"gaussian": {"n": 99, "mean": 0.01473}, "poisson_gaussian": {"n": 114, "mean": 0.01169}}
+}

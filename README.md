@@ -6,7 +6,9 @@ architecture for dashcam footage, plus a benchmark of three published baselines 
 
 > **New chat or new machine? Read [`HANDOFF_FOR_NEW_CHAT.md`](HANDOFF_FOR_NEW_CHAT.md) first**,
 > then [`RESULTS_AND_DIAGNOSIS.md`](RESULTS_AND_DIAGNOSIS.md). This README is the map;
-> those two are the detail.
+> those two are the detail. **For real-noise (Track C), cross-dataset (DAVIS),
+> efficiency (FLOPs) and every before/after image, see
+> [`GENERALIZATION_RESULTS.md`](GENERALIZATION_RESULTS.md).**
 
 ---
 
@@ -23,8 +25,11 @@ architecture for dashcam footage, plus a benchmark of three published baselines 
 | Statistical significance testing | ✅ Done |
 | **Stage-1 evaluation (fairness comparison)** | ✅ **DONE — architecture win confirmed** |
 | Qualitative before/after visuals | ✅ **DONE** — `figures/`, `QUALITATIVE_RESULTS.md` |
+| Model efficiency — FLOPs, inference time, memory | ✅ **DONE** — `results/complexity/`, `GENERALIZATION_RESULTS.md` §4 |
+| **Track C — real noise, held out** | ✅ **DONE** — DashMamba on 116 real clips, `GENERALIZATION_RESULTS.md` §1 |
+| **DAVIS test-dev — cross-dataset generalization** | ✅ **DONE** — DashMamba on 30 unrelated videos, `GENERALIZATION_RESULTS.md` §2 |
 | Ablation study | ⬜ Low value now — signals measured inactive, see below |
-| Tracks B and C | ⬜ Never evaluated — deliberate scope decision |
+| Track B (synthetic low-light) | ⬜ Never evaluated — deliberate scope decision |
 
 ---
 
@@ -97,8 +102,10 @@ design works.** Root causes and fixes: `RESULTS_AND_DIAGNOSIS.md` §2.
 | ~~1~~ | ~~**Stage-1 evaluation**~~ — ✅ **done**, see above | — | §5 below |
 | ~~2~~ | ~~**Qualitative visuals**~~ — ✅ **done** | — | `QUALITATIVE_RESULTS.md` |
 | ~~3~~ | ~~Update docs with Stage-1 numbers~~ — ✅ **done** | — | `RESULTS_AND_DIAGNOSIS.md` |
-| 4 | *(Optional)* Fix both signals and retrain | ~7 h train + 5 h eval | `RESULTS_AND_DIAGNOSIS.md` §2 |
-| 5 | *(Low value)* Ablation | ~6 h | Signals are inert; would confirm, not inform |
+| ~~4~~ | ~~Real-noise (Track C) + cross-dataset (DAVIS) generalization~~ — ✅ **done** | — | `GENERALIZATION_RESULTS.md` |
+| ~~5~~ | ~~FLOPs / inference time / model size~~ — ✅ **done** | — | `results/complexity/README.md` |
+| 6 | *(Optional)* Fix both signals and retrain | ~7 h train + 5 h eval | `RESULTS_AND_DIAGNOSIS.md` §2 |
+| 7 | *(Low value)* Ablation | ~6 h | Signals are inert; would confirm, not inform |
 
 **Why #1 mattered (and what it showed):** Stage-2 DashMamba was fine-tuned on dashcam
 data while the three baselines were not, so an examiner would ask what the *architecture*
@@ -134,8 +141,17 @@ scripts/
   p3_dataloader.py         Dataset over dashcam frames
   pretrain_dataloader.py   DAVIS loader for Stage-1
   package_for_eval.py      Rebuilds the portable data subset
+  evaluate_davis.py        DAVIS test-dev generalization eval (reuses p3_evaluate's metrics)
+  measure_input_quality.py NIQE/BRISQUE on raw (un-restored) input, any track/axis
+  measure_loss.py          Held-out Charbonnier loss, either checkpoint, either dataset
+  make_before_after.py     Before/after/GT PNGs — Track A, Track C or DAVIS
+  make_crops.py            Zoomed 2x center-crop comparisons from saved PNGs
+  model_complexity.py      Params / FLOPs / latency / pipeline cost, all 4 models
+  baseline_shims.py        Builds RVRT/BasicVSR++/FastDVDnet with no compiled ops
+  make_tradeoff_graphs.py  PSNR-vs-FLOPs and SSIM-vs-FLOPs charts
 metadata/*.csv             Clip splits, evaluation index
-results/                   All baseline + DashMamba Stage-2 results
+results/                   All baseline + DashMamba results, Track C, DAVIS, complexity
+figures/                   Before/after visuals — Track A, Track C, DAVIS
 docs/                      Architecture, weakness analysis, dataset scope, handoff
 ```
 
@@ -179,10 +195,10 @@ cd dashcam-video-restoration-phase3
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 pip install opencv-python numpy requests
 
-# Windows
-set THESIS_P3_ROOT=C:\path\to\dashcam-video-restoration-phase3
-# Linux / macOS
-export THESIS_P3_ROOT=/path/to/dashcam-video-restoration-phase3
+# THESIS_P3_ROOT is optional: it defaults to the repo root (the folder above
+# scripts/). Set it only if dataset/ lives somewhere else, e.g. the full dataset:
+#   Windows:        set THESIS_P3_ROOT=D:\thesis_p3
+#   Linux / macOS:  export THESIS_P3_ROOT=/path/to/thesis_p3
 
 cd scripts
 ```
@@ -270,9 +286,11 @@ breakdown below a blank line.
 | File | Contents |
 |---|---|
 | [`HANDOFF_FOR_NEW_CHAT.md`](HANDOFF_FOR_NEW_CHAT.md) | Full context for a fresh assistant — thesis, history, commands, traps |
-| [`RESULTS_AND_DIAGNOSIS.md`](RESULTS_AND_DIAGNOSIS.md) | All results, significance tests, the signal-inactivity diagnosis, what to claim and what not to |
+| [`RESULTS_AND_DIAGNOSIS.md`](RESULTS_AND_DIAGNOSIS.md) | All Track A results, significance tests, the signal-inactivity diagnosis, what to claim and what not to |
+| [`GENERALIZATION_RESULTS.md`](GENERALIZATION_RESULTS.md) | **Real-noise (Track C), cross-dataset (DAVIS), model size, held-out loss and efficiency** — every result and image not on the original Track A benchmark, with an exact index of which file/folder holds what |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | What `models/dashmamba.py` actually builds — data flow, every component, parameter budget, training details, and what the trained model really learned |
-| [`QUALITATIVE_RESULTS.md`](QUALITATIVE_RESULTS.md) | Before/after visual material, clip-selection rationale, and the chroma analysis |
+| [`QUALITATIVE_RESULTS.md`](QUALITATIVE_RESULTS.md) | Before/after visual material (Track A), clip-selection rationale, and the chroma analysis |
+| [`results/complexity/README.md`](results/complexity/README.md) | FLOPs, inference time and memory for all four models, measured under one protocol |
 | `docs/Phase3_DashMamba_Architecture.docx` | Design rationale + **verified prior-art positioning**. One citation proposed externally ("MVSSM") could not be verified and appears fabricated — **do not cite it** |
 | `docs/Phase3_Baseline_Weakness_Analysis.docx` | Per-lighting findings that motivated the design |
 | `docs/Phase3_Baseline_Dataset_Scope.docx` | Exactly which data produced which numbers |

@@ -1,0 +1,17 @@
+{
+  "description": "No-reference quality (NIQE, BRISQUE) of the RAW real Track C input, measured separately from per_clip.csv (which only scores DashMamba's OUTPUT) so the before/after comparison exists. Produced by scripts/measure_input_quality.py.",
+  "track": "C", "kind": "none", "level": "real", "clips": 116,
+  "before_raw_input": {
+    "niqe":    {"mean": 4.9712, "std": 0.7311, "note": "lower is better"},
+    "brisque": {"mean": 34.2512, "std": 12.3614, "note": "lower is better"}
+  },
+  "after_dashmamba_stage2": {
+    "niqe":    {"mean": 5.1773, "note": "from results/dashmamba_stage2_track_c_real/summary.csv"},
+    "brisque": {"mean": 34.0222, "note": "from results/dashmamba_stage2_track_c_real/summary.csv"}
+  },
+  "delta_after_minus_before": {
+    "niqe": 0.2061,
+    "brisque": -0.2290
+  },
+  "honest_reading": "On real Track C footage, DashMamba's no-reference-metric change is small in both directions - NIQE is marginally WORSE after restoration, BRISQUE is marginally better - and both deltas are small relative to their per-clip std (0.73 / 12.36), i.e. not a clear win either way by these metrics. This matches the qualitative before/after images (figures/track_c/*_compare.png, *_crop.png): visible cleanup is subtle, not dramatic, because real dashcam sensor noise at typical ISO is far milder than the synthetic sigma50 noise the main PSNR/SSIM results are measured on. Do not present Track C as a clean win; present it as evidence the model does not damage real footage and behaves reasonably out of its synthetic-noise training distribution."
+}

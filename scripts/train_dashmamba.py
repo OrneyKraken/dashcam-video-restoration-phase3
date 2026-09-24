@@ -113,7 +113,9 @@ def main():
     ap.add_argument("--mid-channels", type=int, default=64)
     ap.add_argument("--num-res-blocks", type=int, default=5)
     ap.add_argument("--state-dim", type=int, default=16)
-    ap.add_argument("--num-workers", type=int, default=4)
+    # 0, not 4: on Windows, spawned workers pickle ~42 MB/batch through IPC,
+    # measured 1.05 s/batch with 0 workers vs 2.47 s/batch with 4.
+    ap.add_argument("--num-workers", type=int, default=0)
     ap.add_argument("--save-every", type=int, default=200)
     ap.add_argument("--log-every", type=int, default=20)
     ap.add_argument("--init-from", default=None, help="checkpoint to initialize weights from (e.g. pretrain's last.pt for finetune)")

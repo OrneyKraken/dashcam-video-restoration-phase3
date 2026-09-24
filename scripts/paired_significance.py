@@ -1,6 +1,6 @@
 import csv, math, itertools
 from pathlib import Path
-R = Path(r"F:\user4\thesis_p3\results")
+R = Path(__file__).resolve().parent.parent / "results"
 runs = {"S1":"dashmamba_stage1_track_a_test","S2":"dashmamba_stage2_track_a_test",
         "RVRT":"rvrt_track_a_test","FastDVD":"fastdvdnet_track_a_test",
         "BVSRpp":"bvrpp_track_a_test"}

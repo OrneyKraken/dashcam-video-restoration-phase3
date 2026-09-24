@@ -1,0 +1,5 @@
+track,split,kind,level,lighting,clips,psnr,ssim,lpips,psnr_in,tof,tof_in,brisque,niqe
+C,test,none,real,,116,,,,,6.32918,6.32899,34.02222,5.1773
+,,,,,,,,,,,,,
+C,test,none,real,evening,29,,,,,6.26058,6.26574,31.95326,4.78324
+C,test,none,real,night,87,,,,,6.35204,6.35007,34.71188,5.30866

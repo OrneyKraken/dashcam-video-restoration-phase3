@@ -246,11 +246,15 @@ On a 16 GB RTX 5050 laptop, budget roughly **1.8–2.2×** these times and drop
 
 ```bash
 export THESIS_P3_DASHMAMBA_CKPT=/path/to/repo/checkpoints/pretrain_stage1.pt   # Stage-1
-python scripts/p3_evaluate.py \
+cd scripts
+python -u p3_evaluate.py \
     --model-import dashmamba_wrapper:restore \
     --run-name dashmamba_stage1_track_a_test \
-    --track A --split test --stride 2 --frames 80
+    --tracks A --splits test --stride 2 --max-frames 80
 ```
+
+Run from `scripts/` so `dashmamba_wrapper` is importable. `THESIS_P3_ROOT` is optional:
+it defaults to the repo root, so it only needs setting if `dataset/` lives elsewhere.
 
 Point the variable at `finetune_stage2.pt` for Stage-2. On Windows use `set` instead of
 `export`. `per_clip.csv` is written incrementally, so the run is **resumable** —

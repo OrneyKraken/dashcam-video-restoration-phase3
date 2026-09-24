@@ -1,0 +1,7 @@
+{
+  "description": "Charbonnier training loss (eps=1e-3), measured with no gradient update, on Track A test - held out from training (test clips are excluded from P3TrainSequences' 'train' split by construction). No training-loss curve was logged during the original run; this is the substitute. Produced by scripts/measure_loss.py.",
+  "checkpoint": "checkpoints/finetune_stage2.pt", "trained_to_step": 11000,
+  "data": "track-a-test", "seq_len": 12, "crop": 192, "passes": 3, "n_windows": 213,
+  "loss": {"mean": 0.01259, "std": 0.00560, "se": 0.00038, "ci95": [0.01184, 0.01334]},
+  "by_kind": {"gaussian": {"n": 99, "mean": 0.01400}, "poisson_gaussian": {"n": 114, "mean": 0.01137}}
+}

@@ -12,9 +12,10 @@ from pathlib import Path
 # Paths
 # ---------------------------------------------------------------------------
 # Override with env vars THESIS_P3_ROOT / THESIS_P2_ROOT on machines where the
-# data lives somewhere else (Kaggle, another PC). Defaults match this repo's
-# original Linux box; the training machine (Windows, RTX 4080) sets THESIS_P3_ROOT.
-P3_ROOT = Path(os.environ.get("THESIS_P3_ROOT", "/media/ishrak/THESIS_DATA/thesis_p3"))
+# data lives somewhere else (Kaggle, another PC). P3_ROOT defaults to this repo
+# itself (the folder above scripts/), so a clone with dataset/ copied into it
+# runs with no env vars set. THESIS_P2_ROOT only matters for the dataset build.
+P3_ROOT = Path(os.environ.get("THESIS_P3_ROOT", Path(__file__).resolve().parent.parent))
 OLD_ROOT = Path(os.environ.get("THESIS_P2_ROOT", "/media/ishrak/THESIS_DATA/thesis_dataset"))
 
 CLIPS_MANIFEST = OLD_ROOT / "logs" / "clips_manifest.csv"   # existing curation (1425 kept)

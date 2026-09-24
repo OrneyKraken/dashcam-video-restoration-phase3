@@ -1,7 +1,8 @@
 #!/bin/bash
 # Usage: bash check_progress.sh [run_name]   (default: rvrt_track_a_test)
 RUN="${1:-rvrt_track_a_test}"
-CSV="F:/user4/thesis_p3/results/$RUN/per_clip.csv"
+ROOT="${THESIS_P3_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+CSV="$ROOT/results/$RUN/per_clip.csv"
 TOTAL=284
 DONE=$(($(wc -l < "$CSV") - 1))
 START=$(stat "$CSV" | grep Birth | sed 's/ Birth: //')

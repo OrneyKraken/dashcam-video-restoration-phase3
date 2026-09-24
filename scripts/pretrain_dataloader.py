@@ -100,8 +100,9 @@ class DavisTrainSequences(Dataset):
 
 if __name__ == "__main__":
     import sys
+    from p3_config import P3_ROOT
     ds = DavisTrainSequences(sys.argv[1] if len(sys.argv) > 1 else
-                             "F:/user4/thesis_p3/external/pretrain_data/DAVIS",
+                             P3_ROOT / "external" / "pretrain_data" / "DAVIS",
                              seq_len=8, crop=128)
     s = ds[0]
     print(f"ok: {len(ds)} videos, sample lq {tuple(s['lq'].shape)} kind={s['kind']}")

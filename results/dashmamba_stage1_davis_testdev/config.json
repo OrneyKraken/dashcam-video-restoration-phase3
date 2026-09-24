@@ -1,0 +1,10 @@
+{
+  "run_name": "dashmamba_stage1_davis_testdev",
+  "model": "dashmamba_wrapper:restore",
+  "dataset": "DAVIS 2017 test-dev",
+  "davis_root": "D:\\thesis_p3\\external\\pretrain_data\\DAVIS_test_dev\\DAVIS",
+  "videos": 30,
+  "max_frames": 80,
+  "finished": "2026-09-25T00:24:43",
+  "elapsed_sec": 5505.4
+}
