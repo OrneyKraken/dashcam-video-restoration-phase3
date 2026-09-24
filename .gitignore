@@ -33,3 +33,7 @@ venv/
 # (figures/track_c/, figures/davis/, ...), which a bare figures/*.png misses.
 !figures/
 !figures/**/*.png
+
+# Charts generated as part of a results/ writeup (e.g. the PSNR/SSIM-vs-FLOPs
+# tradeoff graphs) are committed too - same reasoning as figures/ above.
+!results/**/*.png
